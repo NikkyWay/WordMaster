@@ -2,12 +2,13 @@
     --bg-body: #ebedf0;
     --bg-card: #ffffff;
     --text-main: #111827;
-    --text-muted: #64748b;
+    --text-muted: #64748b; /* Обязательно */
     --accent: #000000;
     --border: #e2e8f0;
     --input-bg: #f8fafc;
     --radius: 16px;
 
+    /* Status Colors */
     --c-new-text: #475569;
     --c-new-bg: #f1f5f9;
     --c-learning-text: #c2410c;
@@ -127,7 +128,6 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 .stat-num { font-size: 28px; font-weight: 800; margin-bottom: 5px; }
 .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
 
-/* TRAINING GRID & MULTI-SELECT */
 .training-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -147,7 +147,6 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted);
 }
 
-/* Amount Row Layout */
 .amount-row {
     display: flex;
     gap: 10px;
@@ -181,7 +180,6 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     width: 60px; text-align: center; padding: 12px 5px;
 }
 
-/* Multi Select Styles */
 .multi-select-wrapper {
     width: 100%; min-height: 46px; border: 1px solid var(--border); border-radius: 12px;
     background: white; padding: 5px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
@@ -311,7 +309,6 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 .action-icons { display: flex; gap: 15px; margin-left: 5px; }
 .action-icons i { color: #cbd5e1; font-size: 16px; padding: 5px; }
 
-/* Empty State */
 .empty-state {
     text-align: center; color: var(--text-muted); padding: 30px 20px;
     background: white; border-radius: 16px; border: 2px dashed var(--border);
@@ -375,8 +372,7 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     transform: translateY(-20px);
 }
 
-/* Z-INDEX */
-#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal {
+#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal, #modal-settings {
     z-index: 2000;
 }
 

@@ -67,7 +67,6 @@ const App = {
         localStorage.setItem('wordmaster_prod_v2', JSON.stringify(this.data));
     },
 
-    // --- Destructive Actions ---
     initResetStats() {
         this.currentDestructiveAction = 'resetStats';
         this.openDangerModal1("Reset Statistics?", "This will reset streaks, today's count, and learning progress.");
@@ -109,14 +108,47 @@ const App = {
         this.currentDestructiveAction = null;
     },
 
-    // --- UI Helpers ---
+    exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "wordmaster_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    },
+
+    importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (parsed.words && parsed.stats) {
+                    this.data = parsed;
+                    this.save();
+                    this.renderDashboard();
+                    this.renderDictionary();
+                    this.showMessage("Success", "Data imported successfully.");
+                    this.closeModal('modal-settings');
+                } else {
+                    throw new Error("Invalid structure");
+                }
+            } catch (err) {
+                this.showMessage("Error", "Invalid JSON file.");
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    },
+
     showMessage(title, text) {
         document.getElementById('msg-title').innerText = title;
         document.getElementById('msg-text').innerText = text;
         document.getElementById('modal-message').style.display = 'flex';
     },
 
-    // --- GOAL Editing ---
     openGoalModal() {
         document.getElementById('inp-goal').value = this.data.goal;
         document.getElementById('modal-goal').style.display = 'flex';
@@ -139,7 +171,6 @@ const App = {
         }
     },
 
-    // --- Filters ---
     populateTrainingFilters() {
         const tagSelect = document.getElementById('train-tag');
         const sourceSelect = document.getElementById('train-source');
@@ -160,7 +191,6 @@ const App = {
         if (sources.includes(currentSource)) sourceSelect.value = currentSource;
     },
 
-    // --- Multi-Select ---
     handleSpecificInput(input) {
         const val = input.value.toLowerCase();
         const dropdown = document.getElementById('specific-dropdown');
@@ -211,7 +241,6 @@ const App = {
         }).join('');
     },
 
-    // --- Session Logic ---
     startSession() {
         let count = 20;
         const customCountVal = parseInt(document.getElementById('custom-count').value);
@@ -234,7 +263,6 @@ const App = {
         const tagFilter = document.getElementById('train-tag').value;
         const sourceFilter = document.getElementById('train-source').value;
 
-        // 1. General Filter
         let generalPool = this.data.words.filter(w => {
             let statusMatch = false;
             if (statusFilter === 'new_learning') statusMatch = (w.status === 'new' || w.status === 'learning');
@@ -248,12 +276,10 @@ const App = {
             return statusMatch && tagMatch && sourceMatch;
         });
 
-        // 2. Specific Words (Priority)
         const specificPool = this.selectedSpecificIds
             .map(id => this.data.words.find(w => w.id === id))
             .filter(Boolean);
 
-        // 3. Combine Logic
         const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
 
         let sessionList = [...specificPool];
@@ -263,13 +289,11 @@ const App = {
         } else {
             if (sessionList.length < count) {
                 const needed = count - sessionList.length;
-                // Shuffle remainingGeneral before picking
                 remainingGeneral.sort(() => Math.random() - 0.5);
                 sessionList = sessionList.concat(remainingGeneral.slice(0, needed));
             }
         }
 
-        // Final Shuffle
         sessionList.sort(() => Math.random() - 0.5);
 
         if (sessionList.length === 0) {
@@ -367,7 +391,6 @@ const App = {
         this.navigate('dashboard');
     },
 
-    // --- Navigation ---
     navigate(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-item, .m-nav-item').forEach(n => n.classList.remove('active'));
@@ -382,7 +405,6 @@ const App = {
         }
     },
 
-    // --- Dashboard ---
     renderDashboard() {
         const total = this.data.words.length;
         const learned = this.data.words.filter(w => w.status === 'learned').length;
@@ -404,7 +426,7 @@ const App = {
 
         if (recent.length === 0) {
             list.innerHTML = `
-                <div class="empty-state" onclick="App.openModal()">
+                <div class="empty-state" onclick="App.openAddWordModal()">
                     Time for adding a new word! ✍️
                 </div>
             `;
@@ -415,7 +437,6 @@ const App = {
         this.populateTrainingFilters();
     },
 
-    // --- Dictionary ---
     renderDictionary() {
         const list = document.getElementById('dictionary-list');
         list.innerHTML = '';
@@ -444,7 +465,7 @@ const App = {
         const sourceHtml = w.source ? `<span class="source-badge"><i class="fas fa-link"></i> ${w.source}</span>` : '';
 
         div.innerHTML = `
-            <div class="w-main" onclick="App.openModal(${w.id})">
+            <div class="w-main" onclick="App.openEditWordModal(${w.id})">
                 <strong>${w.word}</strong>
                 <div class="w-trans">${w.trans}</div>
             </div>
@@ -454,13 +475,12 @@ const App = {
                 <div class="status-badge st-${w.status}" onclick="event.stopPropagation(); App.openStatusChangeModal(${w.id})">
                     ${statusMap[w.status]}
                 </div>
-                ${isDictionary ? `<div class="action-icons"><i class="fas fa-pen" onclick="App.openModal(${w.id})"></i></div>` : ''}
+                ${isDictionary ? `<div class="action-icons"><i class="fas fa-pen" onclick="App.openEditWordModal(${w.id})"></i></div>` : ''}
             </div>
         `;
         return div;
     },
 
-    // --- Status Change ---
     openStatusChangeModal(id) {
         this.tempStatusChange.id = id;
         document.getElementById('modal-status').style.display = 'flex';
@@ -484,39 +504,43 @@ const App = {
         this.closeModal('modal-confirm');
     },
 
-    // --- Modals ---
-    openModal(id = null) {
-        document.getElementById('modal-overlay').style.display = 'flex';
+    // --- Modal System ---
+    openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    },
+
+    openAddWordModal() {
         const form = document.getElementById('word-form');
         form.reset();
-        if (id) {
-            const w = this.data.words.find(i => i.id === id);
-            document.getElementById('modal-title').innerText = 'Edit Word';
-            document.getElementById('inp-id').value = w.id;
-            document.getElementById('inp-word').value = w.word;
-            document.getElementById('inp-trans').value = w.trans;
-            document.getElementById('inp-example').value = w.example || '';
-            document.getElementById('inp-tag').value = w.tag;
-            document.getElementById('inp-source').value = w.source || '';
-            document.getElementById('btn-delete').style.display = 'block';
-        } else {
-            document.getElementById('modal-title').innerText = 'Add Word';
-            document.getElementById('inp-id').value = '';
-            document.getElementById('btn-delete').style.display = 'none';
-        }
+        document.getElementById('modal-title').innerText = 'Add Word';
+        document.getElementById('inp-id').value = '';
+        document.getElementById('btn-delete').style.display = 'none';
+        this.openModal('modal-overlay');
+    },
+
+    openEditWordModal(id) {
+        const w = this.data.words.find(i => i.id === id);
+        if (!w) return;
+        document.getElementById('modal-title').innerText = 'Edit Word';
+        document.getElementById('inp-id').value = w.id;
+        document.getElementById('inp-word').value = w.word;
+        document.getElementById('inp-trans').value = w.trans;
+        document.getElementById('inp-example').value = w.example || '';
+        document.getElementById('inp-tag').value = w.tag;
+        document.getElementById('inp-source').value = w.source || '';
+        document.getElementById('btn-delete').style.display = 'block';
+        this.openModal('modal-overlay');
     },
 
     closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
     },
 
-    // --- Data Actions ---
     saveWord() {
         const id = document.getElementById('inp-id').value;
         const wordVal = document.getElementById('inp-word').value;
         const transVal = document.getElementById('inp-trans').value;
 
-        // Validation
         const hasNumber = /\d/;
         if (hasNumber.test(wordVal) || hasNumber.test(transVal)) {
             this.showMessage('Validation Error', 'Word and Translation cannot contain numbers.');
@@ -551,7 +575,7 @@ const App = {
         if (!id) return;
         this.wordToDeleteId = parseInt(id);
 
-        // Show confirm modal WITHOUT closing the edit form
+        // Show confirm modal over current modal
         document.getElementById('modal-delete-confirm').style.display = 'flex';
     },
 
@@ -561,7 +585,7 @@ const App = {
             this.save();
             this.wordToDeleteId = null;
             this.closeModal('modal-delete-confirm');
-            this.closeModal('modal-overlay'); // NOW close the edit form too
+            this.closeModal('modal-overlay');
             this.renderDashboard();
             this.renderDictionary();
         }

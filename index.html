@@ -21,8 +21,11 @@
             <button class="nav-item" onclick="App.navigate('dictionary')">
                 <i class="fas fa-book"></i> Dictionary
             </button>
+            <button class="nav-item" onclick="App.openModal('modal-settings')">
+                <i class="fas fa-cog"></i> Settings
+            </button>
         </nav>
-        <button class="btn-sidebar-add" onclick="App.openModal()">
+        <button class="btn-sidebar-add" onclick="App.openAddWordModal()">
             <i class="fas fa-plus"></i> Add Word
         </button>
     </aside>
@@ -74,7 +77,7 @@
                                 <button class="count-btn" data-val="30">30</button>
                                 <button class="count-btn" data-val="max">Max</button>
                             </div>
-                            <input type="number" id="custom-count" class="custom-input small-input" placeholder="1" min="1">
+                            <input type="number" id="custom-count" class="custom-input small-input" placeholder="#" min="1">
                         </div>
                     </div>
 
@@ -193,11 +196,14 @@
     <button class="m-nav-item active" onclick="App.navigate('dashboard')">
         <i class="fas fa-home"></i>
     </button>
-    <div class="m-nav-add" onclick="App.openModal()">
+    <div class="m-nav-add" onclick="App.openAddWordModal()">
         <i class="fas fa-plus"></i>
     </div>
     <button class="m-nav-item" onclick="App.navigate('dictionary')">
         <i class="fas fa-book"></i>
+    </button>
+    <button class="m-nav-item" onclick="App.openModal('modal-settings')">
+        <i class="fas fa-cog"></i>
     </button>
 </nav>
 
@@ -236,6 +242,28 @@
                 <button type="button" id="btn-delete" class="btn-red-text" style="display:none" onclick="App.promptDelete()">Delete</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div id="modal-settings" class="modal-overlay">
+    <div class="modal-window small-modal">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <i class="fas fa-times close-icon" onclick="App.closeModal('modal-settings')"></i>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <p style="color: var(--text-muted); font-size: 14px;">Sync your progress across devices.</p>
+
+            <button class="btn-black-large" onclick="App.exportData()">
+                <i class="fas fa-download" style="margin-right: 8px;"></i> Export Data
+            </button>
+
+            <button class="btn-white" onclick="document.getElementById('import-file').click()">
+                <i class="fas fa-upload" style="margin-right: 8px;"></i> Import Data
+            </button>
+
+            <input type="file" id="import-file" style="display: none;" accept=".json" onchange="App.importData(this)">
+        </div>
     </div>
 </div>
 
