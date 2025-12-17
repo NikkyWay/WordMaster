@@ -100,11 +100,9 @@ const App = {
     openGoalModal() {
         document.getElementById('inp-goal').value = this.data.goal;
         document.getElementById('modal-goal').style.display = 'flex';
-        // Auto focus input
         setTimeout(() => document.getElementById('inp-goal').focus(), 100);
     },
 
-    // Replaces old prompt editGoal
     editGoal() {
         this.openGoalModal();
     },
@@ -262,7 +260,16 @@ const App = {
         const recent = [...this.data.words].sort((a,b) => b.date - a.date).slice(0, 3);
         const list = document.getElementById('recent-list');
         list.innerHTML = '';
-        recent.forEach(w => list.appendChild(this.createWordItem(w)));
+
+        if (recent.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state" onclick="App.openModal()">
+                    Time for adding a new word! ✍️
+                </div>
+            `;
+        } else {
+            recent.forEach(w => list.appendChild(this.createWordItem(w)));
+        }
     },
 
     // --- Dictionary ---

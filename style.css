@@ -92,6 +92,9 @@ body {
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 10px; }
 h1 { font-size: 28px; font-weight: 700; }
 
+/* Global H3 styling to prevent overlap */
+h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
+
 .streak-badge {
     background: white; padding: 6px 14px;
     border-radius: 20px; font-weight: 600; font-size: 14px;
@@ -192,6 +195,8 @@ h1 { font-size: 28px; font-weight: 700; }
 }
 .btn-float-reset:hover { transform: rotate(-90deg); background: #fef2f2; }
 
+.recent-section { margin-top: 30px; padding-bottom: 80px; }
+
 .word-list { display: flex; flex-direction: column; gap: 12px; }
 .word-item {
     background: white; padding: 16px 20px; border-radius: 16px;
@@ -237,6 +242,23 @@ h1 { font-size: 28px; font-weight: 700; }
 
 .action-icons { display: flex; gap: 15px; margin-left: 5px; }
 .action-icons i { color: #cbd5e1; font-size: 16px; padding: 5px; }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 30px 20px;
+    background: white;
+    border-radius: 16px;
+    border: 2px dashed var(--border);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 10px; /* Space from header */
+    width: 100%;
+}
+.empty-state:hover { background: var(--input-bg); border-color: #cbd5e1; color: var(--text-main); }
 
 .learning-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; gap: 15px;}
 .btn-back {

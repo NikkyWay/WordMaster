@@ -13,7 +13,7 @@
 <div class="app-container">
 
     <aside class="sidebar">
-        <div class="logo">WordMaster.</div>
+        <div class="logo">WordMaster</div>
         <nav class="nav-menu">
             <button class="nav-item active" onclick="App.navigate('dashboard')">
                 <i class="fas fa-home"></i> Dashboard
@@ -38,7 +38,7 @@
             <div class="card goal-card">
                 <div class="card-header-row">
                     <h3>Goal: <span id="goal-target">100</span> words</h3>
-                    <i class="fas fa-pen edit-icon" onclick="App.openGoalModal()" title="Edit Goal"></i>
+                    <i class="fas fa-pen edit-icon" onclick="App.editGoal()" title="Edit Goal"></i>
                 </div>
                 <div class="progress-track">
                     <div class="progress-fill" id="progress-fill"></div>
@@ -85,7 +85,7 @@
                 <button class="btn-black-large" onclick="App.startSession()">Let's Go</button>
             </div>
 
-            <div style="margin-top: 30px; padding-bottom: 80px;">
+            <div class="recent-section">
                 <h3>Recently Added</h3>
                 <div id="recent-list" class="word-list"></div>
             </div>
