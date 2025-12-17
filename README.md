@@ -80,6 +80,7 @@ No frameworks were used to better understand core web fundamentals.
 
 ⸻
 
+
 ### **🤖 Use of AI Tools**
 
 AI tools were used as an assistant, not as an automatic generator.
@@ -126,6 +127,15 @@ I also learned that using AI effectively is not about replacing thinking, but ab
 ### 📄 **License**
 
 - This project was created for educational purposes.
+
+## 🌐 Live Demo
+GitHub Pages: https://nikkyway.github.io/WordMaster/
+### How to test locally
+Open `index.html` in a browser (or use VS Code / WebStorm Live Server).
+
+
+
+⸻
 
 
 ## **📸 Screenshots**
