@@ -147,8 +147,15 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted);
 }
 
+/* Amount Row Layout */
+.amount-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
 .count-selector {
-    display: flex; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; width: 100%;
+    display: flex; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; flex: 1;
 }
 
 .count-btn {
@@ -162,6 +169,16 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 .custom-select {
     width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border);
     background: white; font-size: 14px; outline: none; cursor: pointer; color: var(--text-main);
+}
+
+.custom-input {
+    width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border);
+    background: white; font-size: 14px; outline: none;
+}
+.custom-input:focus { border-color: #94a3b8; }
+
+.custom-input.small-input {
+    width: 60px; text-align: center; padding: 12px 5px;
 }
 
 /* Multi Select Styles */
@@ -294,6 +311,7 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 .action-icons { display: flex; gap: 15px; margin-left: 5px; }
 .action-icons i { color: #cbd5e1; font-size: 16px; padding: 5px; }
 
+/* Empty State */
 .empty-state {
     text-align: center; color: var(--text-muted); padding: 30px 20px;
     background: white; border-radius: 16px; border: 2px dashed var(--border);
@@ -357,6 +375,7 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     transform: translateY(-20px);
 }
 
+/* Z-INDEX */
 #modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal {
     z-index: 2000;
 }
@@ -433,6 +452,9 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 
     .training-grid { grid-template-columns: 1fr; gap: 15px; }
     .control-group.full-width { grid-column: span 1; }
+
+    .amount-row { flex-wrap: wrap; }
+    .custom-input.small-input { width: 100%; flex: 1; }
 
     .word-item { padding: 16px; flex-direction: column; align-items: flex-start; gap: 10px; }
     .w-main { width: 100%; }

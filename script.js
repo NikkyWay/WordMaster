@@ -35,7 +35,6 @@ const App = {
         this.renderDashboard();
         this.setupListeners();
 
-        // Click outside to close dropdown
         document.addEventListener('click', (e) => {
             const wrapper = document.querySelector('.multi-select-wrapper');
             const dropdown = document.getElementById('specific-dropdown');
@@ -50,8 +49,18 @@ const App = {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
+                document.getElementById('custom-count').value = '';
             });
         });
+
+        const customInput = document.getElementById('custom-count');
+        if (customInput) {
+            customInput.addEventListener('input', () => {
+                if (customInput.value.length > 0) {
+                    document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+                }
+            });
+        }
     },
 
     save() {
@@ -151,7 +160,7 @@ const App = {
         if (sources.includes(currentSource)) sourceSelect.value = currentSource;
     },
 
-    // --- Multi-Select Specific Words ---
+    // --- Multi-Select ---
     handleSpecificInput(input) {
         const val = input.value.toLowerCase();
         const dropdown = document.getElementById('specific-dropdown');
@@ -161,7 +170,6 @@ const App = {
             return;
         }
 
-        // Filter words that are NOT already selected
         const matches = this.data.words.filter(w =>
             !this.selectedSpecificIds.includes(w.id) &&
             w.word.toLowerCase().includes(val)
@@ -205,13 +213,28 @@ const App = {
 
     // --- Session Logic ---
     startSession() {
-        const count = parseInt(document.querySelector('.count-btn.active').dataset.val);
+        let count = 20;
+        const customCountVal = parseInt(document.getElementById('custom-count').value);
+        const activeBtn = document.querySelector('.count-btn.active');
+        let isMax = false;
+
+        if (customCountVal && customCountVal > 0) {
+            count = customCountVal;
+        } else if (activeBtn) {
+            const btnVal = activeBtn.dataset.val;
+            if (btnVal === 'max') {
+                isMax = true;
+                count = 999999;
+            } else {
+                count = parseInt(btnVal);
+            }
+        }
 
         const statusFilter = document.getElementById('train-filter').value;
         const tagFilter = document.getElementById('train-tag').value;
         const sourceFilter = document.getElementById('train-source').value;
 
-        // 1. Get words matching general filters
+        // 1. General Filter
         let generalPool = this.data.words.filter(w => {
             let statusMatch = false;
             if (statusFilter === 'new_learning') statusMatch = (w.status === 'new' || w.status === 'learning');
@@ -225,41 +248,28 @@ const App = {
             return statusMatch && tagMatch && sourceMatch;
         });
 
-        // 2. Get specific selected words (Priority)
+        // 2. Specific Words (Priority)
         const specificPool = this.selectedSpecificIds
             .map(id => this.data.words.find(w => w.id === id))
-            .filter(Boolean); // Ensure valid objects
+            .filter(Boolean);
 
-        // 3. Combine pools (Specific words are forced in)
-        // We create a Set of IDs from specific pool to avoid duplicates if they also appear in general
-        const finalPoolSet = new Set(specificPool);
-
-        // Add general words if we need more to reach 'count'
-        generalPool.sort(() => Math.random() - 0.5); // Shuffle general
-
-        for (const w of generalPool) {
-            finalPoolSet.add(w); // Set handles duplicates automatically
-        }
-
-        const combinedArray = Array.from(finalPoolSet);
-
-        // 4. Ensure specific words come first, then fill rest
-        // Actually, let's just make sure specific words are INCLUDED.
-        // If specific words > count, we just use specific words.
-        // If specific < count, we fill with general.
+        // 3. Combine Logic
+        const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
 
         let sessionList = [...specificPool];
 
-        // Filter out specific words from generalPool to avoid duplicates in filling
-        const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
-
-        // Fill up to count
-        if (sessionList.length < count) {
-            const needed = count - sessionList.length;
-            sessionList = sessionList.concat(remainingGeneral.slice(0, needed));
+        if (isMax) {
+            sessionList = sessionList.concat(remainingGeneral);
+        } else {
+            if (sessionList.length < count) {
+                const needed = count - sessionList.length;
+                // Shuffle remainingGeneral before picking
+                remainingGeneral.sort(() => Math.random() - 0.5);
+                sessionList = sessionList.concat(remainingGeneral.slice(0, needed));
+            }
         }
 
-        // Shuffle the final list so specific words aren't always first (optional, but better UX usually)
+        // Final Shuffle
         sessionList.sort(() => Math.random() - 0.5);
 
         if (sessionList.length === 0) {
@@ -352,7 +362,7 @@ const App = {
 
     closeSessionModal() {
         document.getElementById('modal-complete').style.display = 'none';
-        this.selectedSpecificIds = []; // Clear selection after session
+        this.selectedSpecificIds = [];
         this.renderSpecificChips();
         this.navigate('dashboard');
     },

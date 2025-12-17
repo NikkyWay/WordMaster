@@ -65,14 +65,19 @@
                 <h3>Start Training</h3>
 
                 <div class="training-grid">
-                    <div class="control-group">
+                    <div class="control-group full-width">
                         <label>Amount</label>
-                        <div class="count-selector" id="count-options">
-                            <button class="count-btn" data-val="10">10</button>
-                            <button class="count-btn active" data-val="20">20</button>
-                            <button class="count-btn" data-val="30">30</button>
+                        <div class="amount-row">
+                            <div class="count-selector" id="count-options">
+                                <button class="count-btn" data-val="10">10</button>
+                                <button class="count-btn active" data-val="20">20</button>
+                                <button class="count-btn" data-val="30">30</button>
+                                <button class="count-btn" data-val="max">Max</button>
+                            </div>
+                            <input type="number" id="custom-count" class="custom-input small-input" placeholder="1" min="1">
                         </div>
                     </div>
+
                     <div class="control-group">
                         <label>Status</label>
                         <select id="train-filter" class="custom-select">
@@ -89,6 +94,7 @@
                             <option value="all">Any Tag</option>
                         </select>
                     </div>
+
                     <div class="control-group">
                         <label>Source</label>
                         <select id="train-source" class="custom-select">
@@ -96,11 +102,11 @@
                         </select>
                     </div>
 
-                    <div class="control-group full-width" style="position: relative;">
+                    <div class="control-group" style="position: relative;">
                         <label>Specific Words (Priority)</label>
                         <div class="multi-select-wrapper" onclick="document.getElementById('specific-word-input').focus()">
                             <div id="selected-chips" class="chips-container"></div>
-                            <input type="text" id="specific-word-input" class="ghost-input" placeholder="Type to add words..." autocomplete="off" oninput="App.handleSpecificInput(this)">
+                            <input type="text" id="specific-word-input" class="ghost-input" placeholder="Type to add..." autocomplete="off" oninput="App.handleSpecificInput(this)">
                         </div>
                         <div id="specific-dropdown" class="suggestions-dropdown"></div>
                     </div>
@@ -109,7 +115,7 @@
                 <button class="btn-black-large" onclick="App.startSession()">Let's Go</button>
             </div>
 
-            <div class="recent-section">
+            <div style="margin-top: 30px; padding-bottom: 80px;">
                 <h3>Recently Added</h3>
                 <div id="recent-list" class="word-list"></div>
             </div>
@@ -123,6 +129,7 @@
             <header class="header-row">
                 <h1>Dictionary</h1>
             </header>
+
             <div class="dictionary-controls">
                 <select id="dict-filter" class="filter-pill" onchange="App.renderDictionary()">
                     <option value="all">All Statuses</option>
@@ -130,6 +137,7 @@
                     <option value="learning">Learning</option>
                     <option value="learned">Learned</option>
                 </select>
+
                 <div class="search-row-combined">
                     <div class="search-wrap">
                         <i class="fas fa-search"></i>
@@ -140,6 +148,7 @@
                     </button>
                 </div>
             </div>
+
             <div id="dictionary-list" class="word-list" style="padding-bottom: 80px;"></div>
         </div>
 
@@ -153,6 +162,7 @@
                 </div>
                 <span id="session-counter" style="font-weight: 600;">1 / 20</span>
             </div>
+
             <div class="flashcard-container">
                 <div class="flashcard">
                     <div class="fc-top">
