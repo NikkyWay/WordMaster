@@ -13,7 +13,7 @@
 <div class="app-container">
 
     <aside class="sidebar">
-        <div class="logo">WordMaster</div>
+        <div class="logo">WordMaster.</div>
         <nav class="nav-menu">
             <button class="nav-item active" onclick="App.navigate('dashboard')">
                 <i class="fas fa-home"></i> Dashboard
@@ -63,7 +63,8 @@
 
             <div class="card training-card">
                 <h3>Start Training</h3>
-                <div class="training-controls">
+
+                <div class="training-grid">
                     <div class="control-group">
                         <label>Amount</label>
                         <div class="count-selector" id="count-options">
@@ -72,8 +73,8 @@
                             <button class="count-btn" data-val="30">30</button>
                         </div>
                     </div>
-                    <div class="control-group right">
-                        <label>Filter</label>
+                    <div class="control-group">
+                        <label>Status</label>
                         <select id="train-filter" class="custom-select">
                             <option value="new_learning">New + Learning</option>
                             <option value="new">New Only</option>
@@ -81,7 +82,30 @@
                             <option value="all">All Words</option>
                         </select>
                     </div>
+
+                    <div class="control-group">
+                        <label>Tag</label>
+                        <select id="train-tag" class="custom-select">
+                            <option value="all">Any Tag</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Source</label>
+                        <select id="train-source" class="custom-select">
+                            <option value="all">Any Source</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group full-width" style="position: relative;">
+                        <label>Specific Words (Priority)</label>
+                        <div class="multi-select-wrapper" onclick="document.getElementById('specific-word-input').focus()">
+                            <div id="selected-chips" class="chips-container"></div>
+                            <input type="text" id="specific-word-input" class="ghost-input" placeholder="Type to add words..." autocomplete="off" oninput="App.handleSpecificInput(this)">
+                        </div>
+                        <div id="specific-dropdown" class="suggestions-dropdown"></div>
+                    </div>
                 </div>
+
                 <button class="btn-black-large" onclick="App.startSession()">Let's Go</button>
             </div>
 
@@ -99,7 +123,6 @@
             <header class="header-row">
                 <h1>Dictionary</h1>
             </header>
-
             <div class="dictionary-controls">
                 <select id="dict-filter" class="filter-pill" onchange="App.renderDictionary()">
                     <option value="all">All Statuses</option>
@@ -107,7 +130,6 @@
                     <option value="learning">Learning</option>
                     <option value="learned">Learned</option>
                 </select>
-
                 <div class="search-row-combined">
                     <div class="search-wrap">
                         <i class="fas fa-search"></i>
@@ -118,7 +140,6 @@
                     </button>
                 </div>
             </div>
-
             <div id="dictionary-list" class="word-list" style="padding-bottom: 80px;"></div>
         </div>
 
@@ -132,7 +153,6 @@
                 </div>
                 <span id="session-counter" style="font-weight: 600;">1 / 20</span>
             </div>
-
             <div class="flashcard-container">
                 <div class="flashcard">
                     <div class="fc-top">

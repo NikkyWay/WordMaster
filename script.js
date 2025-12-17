@@ -8,6 +8,7 @@ const App = {
     tempStatusChange: { id: null, newStatus: null },
     wordToDeleteId: null,
     currentDestructiveAction: null,
+    selectedSpecificIds: [],
 
     init() {
         const stored = localStorage.getItem('wordmaster_prod_v2');
@@ -30,8 +31,18 @@ const App = {
             }
         }
 
+        this.selectedSpecificIds = [];
         this.renderDashboard();
         this.setupListeners();
+
+        // Click outside to close dropdown
+        document.addEventListener('click', (e) => {
+            const wrapper = document.querySelector('.multi-select-wrapper');
+            const dropdown = document.getElementById('specific-dropdown');
+            if (wrapper && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
     },
 
     setupListeners() {
@@ -119,26 +130,144 @@ const App = {
         }
     },
 
-    // --- Session Logic ---
-    startSession() {
-        const count = parseInt(document.querySelector('.count-btn.active').dataset.val);
-        const filter = document.getElementById('train-filter').value;
+    // --- Filters ---
+    populateTrainingFilters() {
+        const tagSelect = document.getElementById('train-tag');
+        const sourceSelect = document.getElementById('train-source');
 
-        let pool = this.data.words.filter(w => {
-            if (filter === 'new_learning') return w.status === 'new' || w.status === 'learning';
-            if (filter === 'new') return w.status === 'new';
-            if (filter === 'learned') return w.status === 'learned';
-            if (filter === 'all') return true;
-            return false;
-        });
+        const currentTag = tagSelect.value;
+        const currentSource = sourceSelect.value;
 
-        if (pool.length === 0) {
-            this.showMessage('No words found', 'Try adding new words or changing the filter settings.');
+        const tags = [...new Set(this.data.words.map(w => w.tag).filter(t => t && t.trim() !== ""))].sort();
+        const sources = [...new Set(this.data.words.map(w => w.source).filter(s => s && s.trim() !== ""))].sort();
+
+        tagSelect.innerHTML = '<option value="all">Any Tag</option>' +
+            tags.map(t => `<option value="${t}">${t}</option>`).join('');
+
+        sourceSelect.innerHTML = '<option value="all">Any Source</option>' +
+            sources.map(s => `<option value="${s}">${s}</option>`).join('');
+
+        if (tags.includes(currentTag)) tagSelect.value = currentTag;
+        if (sources.includes(currentSource)) sourceSelect.value = currentSource;
+    },
+
+    // --- Multi-Select Specific Words ---
+    handleSpecificInput(input) {
+        const val = input.value.toLowerCase();
+        const dropdown = document.getElementById('specific-dropdown');
+
+        if (val.length === 0) {
+            dropdown.style.display = 'none';
             return;
         }
 
-        pool.sort(() => Math.random() - 0.5);
-        this.session.queue = pool.slice(0, count);
+        // Filter words that are NOT already selected
+        const matches = this.data.words.filter(w =>
+            !this.selectedSpecificIds.includes(w.id) &&
+            w.word.toLowerCase().includes(val)
+        );
+
+        if (matches.length > 0) {
+            dropdown.innerHTML = matches.slice(0, 5).map(w => `
+                <div class="suggestion-item" onclick="App.addSpecificWord(${w.id})">
+                    <strong>${w.word}</strong>
+                    <span class="suggestion-meta">${w.trans}</span>
+                </div>
+            `).join('');
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    },
+
+    addSpecificWord(id) {
+        if (!this.selectedSpecificIds.includes(id)) {
+            this.selectedSpecificIds.push(id);
+            this.renderSpecificChips();
+        }
+        document.getElementById('specific-word-input').value = '';
+        document.getElementById('specific-dropdown').style.display = 'none';
+        document.getElementById('specific-word-input').focus();
+    },
+
+    removeSpecificWord(id) {
+        this.selectedSpecificIds = this.selectedSpecificIds.filter(i => i !== id);
+        this.renderSpecificChips();
+    },
+
+    renderSpecificChips() {
+        const container = document.getElementById('selected-chips');
+        container.innerHTML = this.selectedSpecificIds.map(id => {
+            const w = this.data.words.find(word => word.id === id);
+            return w ? `<div class="chip">${w.word} <i class="fas fa-times" onclick="event.stopPropagation(); App.removeSpecificWord(${id})"></i></div>` : '';
+        }).join('');
+    },
+
+    // --- Session Logic ---
+    startSession() {
+        const count = parseInt(document.querySelector('.count-btn.active').dataset.val);
+
+        const statusFilter = document.getElementById('train-filter').value;
+        const tagFilter = document.getElementById('train-tag').value;
+        const sourceFilter = document.getElementById('train-source').value;
+
+        // 1. Get words matching general filters
+        let generalPool = this.data.words.filter(w => {
+            let statusMatch = false;
+            if (statusFilter === 'new_learning') statusMatch = (w.status === 'new' || w.status === 'learning');
+            else if (statusFilter === 'new') statusMatch = (w.status === 'new');
+            else if (statusFilter === 'learned') statusMatch = (w.status === 'learned');
+            else if (statusFilter === 'all') statusMatch = true;
+
+            const tagMatch = (tagFilter === 'all') || (w.tag === tagFilter);
+            const sourceMatch = (sourceFilter === 'all') || (w.source === sourceFilter);
+
+            return statusMatch && tagMatch && sourceMatch;
+        });
+
+        // 2. Get specific selected words (Priority)
+        const specificPool = this.selectedSpecificIds
+            .map(id => this.data.words.find(w => w.id === id))
+            .filter(Boolean); // Ensure valid objects
+
+        // 3. Combine pools (Specific words are forced in)
+        // We create a Set of IDs from specific pool to avoid duplicates if they also appear in general
+        const finalPoolSet = new Set(specificPool);
+
+        // Add general words if we need more to reach 'count'
+        generalPool.sort(() => Math.random() - 0.5); // Shuffle general
+
+        for (const w of generalPool) {
+            finalPoolSet.add(w); // Set handles duplicates automatically
+        }
+
+        const combinedArray = Array.from(finalPoolSet);
+
+        // 4. Ensure specific words come first, then fill rest
+        // Actually, let's just make sure specific words are INCLUDED.
+        // If specific words > count, we just use specific words.
+        // If specific < count, we fill with general.
+
+        let sessionList = [...specificPool];
+
+        // Filter out specific words from generalPool to avoid duplicates in filling
+        const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
+
+        // Fill up to count
+        if (sessionList.length < count) {
+            const needed = count - sessionList.length;
+            sessionList = sessionList.concat(remainingGeneral.slice(0, needed));
+        }
+
+        // Shuffle the final list so specific words aren't always first (optional, but better UX usually)
+        sessionList.sort(() => Math.random() - 0.5);
+
+        if (sessionList.length === 0) {
+            this.showMessage('No words found', 'Try changing your filter settings or adding specific words.');
+            return;
+        }
+
+        this.session.queue = sessionList;
         this.session.currentIdx = 0;
         this.session.sessionLearnedCount = 0;
 
@@ -223,6 +352,8 @@ const App = {
 
     closeSessionModal() {
         document.getElementById('modal-complete').style.display = 'none';
+        this.selectedSpecificIds = []; // Clear selection after session
+        this.renderSpecificChips();
         this.navigate('dashboard');
     },
 
@@ -270,6 +401,8 @@ const App = {
         } else {
             recent.forEach(w => list.appendChild(this.createWordItem(w)));
         }
+
+        this.populateTrainingFilters();
     },
 
     // --- Dictionary ---
