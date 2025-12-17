@@ -7,12 +7,10 @@ const App = {
     session: { queue: [], currentIdx: 0, sessionLearnedCount: 0 },
     tempStatusChange: { id: null, newStatus: null },
     wordToDeleteId: null,
-
-    // Tracks what destructive action we are about to perform
-    currentDestructiveAction: null, // 'resetStats' or 'deleteAll'
+    currentDestructiveAction: null,
 
     init() {
-        const stored = localStorage.getItem('wordMasterStorage');
+        const stored = localStorage.getItem('wordmaster_prod_v2');
         if (stored) {
             this.data = JSON.parse(stored);
         } else {
@@ -46,11 +44,10 @@ const App = {
     },
 
     save() {
-        localStorage.setItem('wordMasterStorage', JSON.stringify(this.data));
+        localStorage.setItem('wordmaster_prod_v2', JSON.stringify(this.data));
     },
 
-    // --- Destructive Actions (Double Confirmation) ---
-
+    // --- Destructive Actions ---
     initResetStats() {
         this.currentDestructiveAction = 'resetStats';
         this.openDangerModal1("Reset Statistics?", "This will reset streaks, today's count, and learning progress.");
@@ -75,15 +72,13 @@ const App = {
     executeDestructiveAction() {
         if (this.currentDestructiveAction === 'resetStats') {
             this.data.stats = { today: 0, streak: 0, lastDate: null };
-            // Optional: reset status of words to 'new'? Or keep status?
-            // "Reset stats" usually implies counters. Let's keep word status but reset numbers.
             this.save();
             this.renderDashboard();
             this.showMessage("Success", "Statistics have been reset.");
         }
         else if (this.currentDestructiveAction === 'deleteAll') {
             this.data.words = [];
-            this.data.stats = { today: 0, streak: 0, lastDate: null }; // Also implies reset stats usually
+            this.data.stats = { today: 0, streak: 0, lastDate: null };
             this.save();
             this.renderDashboard();
             this.renderDictionary();
@@ -99,6 +94,31 @@ const App = {
         document.getElementById('msg-title').innerText = title;
         document.getElementById('msg-text').innerText = text;
         document.getElementById('modal-message').style.display = 'flex';
+    },
+
+    // --- GOAL Editing ---
+    openGoalModal() {
+        document.getElementById('inp-goal').value = this.data.goal;
+        document.getElementById('modal-goal').style.display = 'flex';
+        // Auto focus input
+        setTimeout(() => document.getElementById('inp-goal').focus(), 100);
+    },
+
+    // Replaces old prompt editGoal
+    editGoal() {
+        this.openGoalModal();
+    },
+
+    saveGoal() {
+        const val = parseInt(document.getElementById('inp-goal').value);
+        if (val && val > 0) {
+            this.data.goal = val;
+            this.save();
+            this.renderDashboard();
+            this.closeModal('modal-goal');
+        } else {
+            this.showMessage("Invalid Goal", "Please enter a valid number greater than 0.");
+        }
     },
 
     // --- Session Logic ---
@@ -243,15 +263,6 @@ const App = {
         const list = document.getElementById('recent-list');
         list.innerHTML = '';
         recent.forEach(w => list.appendChild(this.createWordItem(w)));
-    },
-
-    editGoal() {
-        const newGoal = prompt("New goal (number of words):", this.data.goal);
-        if(newGoal && !isNaN(newGoal)) {
-            this.data.goal = parseInt(newGoal);
-            this.save();
-            this.renderDashboard();
-        }
     },
 
     // --- Dictionary ---
