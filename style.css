@@ -2,7 +2,7 @@
     --bg-body: #ebedf0;
     --bg-card: #ffffff;
     --text-main: #111827;
-    --text-muted: #64748b; /* Обязательно */
+    --text-muted: #64748b; /* ОТСУТСТВУЮЩАЯ ПЕРЕМЕННАЯ ВОССТАНОВЛЕНА */
     --accent: #000000;
     --border: #e2e8f0;
     --input-bg: #f8fafc;
@@ -372,7 +372,8 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     transform: translateY(-20px);
 }
 
-#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal, #modal-settings {
+/* Z-INDEX */
+#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal, #modal-settings, #modal-goal-reached {
     z-index: 2000;
 }
 

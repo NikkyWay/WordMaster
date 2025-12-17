@@ -66,7 +66,6 @@
 
             <div class="card training-card">
                 <h3>Start Training</h3>
-
                 <div class="training-grid">
                     <div class="control-group full-width">
                         <label>Amount</label>
@@ -80,7 +79,6 @@
                             <input type="number" id="custom-count" class="custom-input small-input" placeholder="#" min="1">
                         </div>
                     </div>
-
                     <div class="control-group">
                         <label>Status</label>
                         <select id="train-filter" class="custom-select">
@@ -90,21 +88,18 @@
                             <option value="all">All Words</option>
                         </select>
                     </div>
-
                     <div class="control-group">
                         <label>Tag</label>
                         <select id="train-tag" class="custom-select">
                             <option value="all">Any Tag</option>
                         </select>
                     </div>
-
                     <div class="control-group">
                         <label>Source</label>
                         <select id="train-source" class="custom-select">
                             <option value="all">Any Source</option>
                         </select>
                     </div>
-
                     <div class="control-group" style="position: relative;">
                         <label>Specific Words (Priority)</label>
                         <div class="multi-select-wrapper" onclick="document.getElementById('specific-word-input').focus()">
@@ -114,11 +109,10 @@
                         <div id="specific-dropdown" class="suggestions-dropdown"></div>
                     </div>
                 </div>
-
                 <button class="btn-black-large" onclick="App.startSession()">Let's Go</button>
             </div>
 
-            <div style="margin-top: 30px; padding-bottom: 80px;">
+            <div class="recent-section">
                 <h3>Recently Added</h3>
                 <div id="recent-list" class="word-list"></div>
             </div>
@@ -132,7 +126,6 @@
             <header class="header-row">
                 <h1>Dictionary</h1>
             </header>
-
             <div class="dictionary-controls">
                 <select id="dict-filter" class="filter-pill" onchange="App.renderDictionary()">
                     <option value="all">All Statuses</option>
@@ -140,7 +133,6 @@
                     <option value="learning">Learning</option>
                     <option value="learned">Learned</option>
                 </select>
-
                 <div class="search-row-combined">
                     <div class="search-wrap">
                         <i class="fas fa-search"></i>
@@ -151,7 +143,6 @@
                     </button>
                 </div>
             </div>
-
             <div id="dictionary-list" class="word-list" style="padding-bottom: 80px;"></div>
         </div>
 
@@ -165,7 +156,6 @@
                 </div>
                 <span id="session-counter" style="font-weight: 600;">1 / 20</span>
             </div>
-
             <div class="flashcard-container">
                 <div class="flashcard">
                     <div class="fc-top">
@@ -188,7 +178,6 @@
                 </div>
             </div>
         </div>
-
     </main>
 </div>
 
@@ -253,15 +242,12 @@
         </div>
         <div style="display: flex; flex-direction: column; gap: 15px;">
             <p style="color: var(--text-muted); font-size: 14px;">Sync your progress across devices.</p>
-
             <button class="btn-black-large" onclick="App.exportData()">
                 <i class="fas fa-download" style="margin-right: 8px;"></i> Export Data
             </button>
-
             <button class="btn-white" onclick="document.getElementById('import-file').click()">
                 <i class="fas fa-upload" style="margin-right: 8px;"></i> Import Data
             </button>
-
             <input type="file" id="import-file" style="display: none;" accept=".json" onchange="App.importData(this)">
         </div>
     </div>
@@ -323,6 +309,16 @@
             </div>
         </div>
         <button class="btn-black-large" onclick="App.closeSessionModal()">Continue</button>
+    </div>
+</div>
+
+<div id="modal-goal-reached" class="modal-overlay">
+    <div class="modal-window centered-text complete-modal">
+        <div class="complete-icon">🏆</div>
+        <h2>Goal Reached!</h2>
+        <p>Congratulations! You've learned <span id="goal-reached-val"></span> words.</p>
+        <button class="btn-black-large" onclick="App.openGoalModalFromSuccess()">Set New Goal</button>
+        <button class="btn-white" style="margin-top: 10px; width: 100%; border: none;" onclick="App.closeGoalSuccess()">Close</button>
     </div>
 </div>
 
