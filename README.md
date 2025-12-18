@@ -124,10 +124,6 @@ I also learned that using AI effectively is not about replacing thinking, but ab
 ⸻
 
 
-### 📄 **License**
-
-- This project was created for educational purposes.
-
 ## 🌐 Live Demo
 GitHub Pages: https://nikkyway.github.io/WordMaster/
 ### How to test locally
