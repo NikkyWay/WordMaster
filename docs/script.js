@@ -11,6 +11,8 @@ const App = {
     currentDestructiveAction: null,
     selectedSpecificIds: [],
 
+    tempGoalMode: 'edit',
+
     init() {
         try {
             const stored = localStorage.getItem('wordmaster_prod_v2');
@@ -19,6 +21,7 @@ const App = {
                 this.data.words = this.data.words || [];
                 this.data.stats = this.data.stats || { today: 0, streak: 0, lastDate: null };
                 this.data.goalReached = (this.data.goalReached === undefined) ? false : this.data.goalReached;
+                if (this.data.goalStartCount === undefined) this.data.goalStartCount = 0;
             }
         } catch(e) {
             console.error("Load error", e);
@@ -42,11 +45,30 @@ const App = {
         this.renderDashboard();
         this.setupListeners();
 
+        // Close dropdown on outside click
         document.addEventListener('click', (e) => {
             const wrapper = document.querySelector('.multi-select-wrapper');
             const dropdown = document.getElementById('specific-dropdown');
             if (wrapper && dropdown && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.style.display = 'none';
+            }
+        });
+
+        // --- НОВОЕ: Закрытие модалок по ESC ---
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Находим все открытые модалки
+                const openModals = document.querySelectorAll('.modal-overlay');
+                openModals.forEach(modal => {
+                    if (modal.style.display === 'flex') {
+                        // Если открыто "Add Word" или "Edit Word", сбрасываем форму
+                        if (modal.id === 'modal-overlay') {
+                            const form = document.getElementById('word-form');
+                            if (form) form.reset();
+                        }
+                        modal.style.display = 'none';
+                    }
+                });
             }
         });
     },
@@ -75,148 +97,237 @@ const App = {
         localStorage.setItem('wordmaster_prod_v2', JSON.stringify(this.data));
     },
 
-    // --- Core: Save Word ---
-    saveWord() {
-        // 1. Close Modal Immediately to prevent "stuck" UI
-        this.closeModal('modal-overlay');
+    editGoal() {
+        this.openGoalModal('edit');
+    },
 
-        const id = document.getElementById('inp-id').value;
-        const wordVal = document.getElementById('inp-word').value.trim();
-        const transVal = document.getElementById('inp-trans').value.trim();
+    openGoalModalFromSuccess() {
+        this.closeModal('modal-goal-reached');
+        this.openGoalModal('new');
+    },
 
-        if (/\d/.test(wordVal) || /\d/.test(transVal)) {
-            this.openModal('modal-overlay'); // Re-open on error
-            this.showMessage('Validation Error', 'No numbers allowed.');
+    openGoalModal(mode) {
+        this.tempGoalMode = mode;
+
+        const inp = document.getElementById('inp-goal');
+        if (mode === 'edit') {
+            inp.value = this.data.goal;
+        } else {
+            inp.value = '';
+            inp.placeholder = "Enter new target (e.g. 10)";
+        }
+
+        this.openModal('modal-goal');
+        setTimeout(() => inp.focus(), 100);
+    },
+
+    saveGoal() {
+        const val = parseInt(document.getElementById('inp-goal').value);
+        if (val && val > 0) {
+            this.data.goal = val;
+
+            if (this.tempGoalMode === 'new') {
+                const totalLearned = this.data.words.filter(w => w.status === 'learned').length;
+                this.data.goalStartCount = totalLearned;
+            }
+
+            this.data.goalReached = false;
+
+            this.save();
+            this.renderDashboard();
+            this.closeModal('modal-goal');
+            this.navigate('dashboard');
+        } else {
+            this.showMessage("Invalid Goal", "Please enter a valid number greater than 0.");
+        }
+    },
+
+    closeGoalSuccess() {
+        this.data.goalReached = true;
+        this.save();
+        this.closeModal('modal-goal-reached');
+        this.navigate('dashboard');
+    },
+
+    getGoalProgress() {
+        const totalLearned = this.data.words.filter(w => w.status === 'learned').length;
+        const start = this.data.goalStartCount || 0;
+        let progress = totalLearned - start;
+        if (progress < 0) progress = 0;
+        return progress;
+    },
+
+    checkGoal() {
+        const progress = this.getGoalProgress();
+        const modal = document.getElementById('modal-goal-reached');
+
+        if (this.data.goal > 0 && progress >= this.data.goal && !this.data.goalReached && modal) {
+            this.data.goalReached = true;
+            this.save();
+            const valEl = document.getElementById('goal-reached-val');
+            if(valEl) valEl.innerText = progress;
+            this.openModal('modal-goal-reached');
+        }
+    },
+
+    startSession() {
+        let count = 20;
+        const customCountVal = parseInt(document.getElementById('custom-count').value);
+        const activeBtn = document.querySelector('.count-btn.active');
+        let isMax = false;
+
+        if (customCountVal && customCountVal > 0) {
+            count = customCountVal;
+        } else if (activeBtn) {
+            const btnVal = activeBtn.dataset.val;
+            if (btnVal === 'max') { isMax = true; count = 999999; }
+            else { count = parseInt(btnVal); }
+        }
+
+        const statusFilter = document.getElementById('train-filter').value;
+        const tagFilter = document.getElementById('train-tag').value;
+        const sourceFilter = document.getElementById('train-source').value;
+
+        let generalPool = this.data.words.filter(w => {
+            let statusMatch = false;
+            if (statusFilter === 'new_learning') statusMatch = (w.status === 'new' || w.status === 'learning');
+            else if (statusFilter === 'new') statusMatch = (w.status === 'new');
+            else if (statusFilter === 'learned') statusMatch = (w.status === 'learned');
+            else if (statusFilter === 'all') statusMatch = true;
+
+            const tagMatch = (tagFilter === 'all') || (w.tag === tagFilter);
+            const sourceMatch = (sourceFilter === 'all') || (w.source === sourceFilter);
+
+            return statusMatch && tagMatch && sourceMatch;
+        });
+
+        const specificPool = this.selectedSpecificIds
+            .map(id => this.data.words.find(w => w.id === id))
+            .filter(Boolean);
+
+        const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
+
+        let sessionList = [...specificPool];
+
+        if (isMax) {
+            sessionList = sessionList.concat(remainingGeneral);
+        } else {
+            if (sessionList.length < count) {
+                const needed = count - sessionList.length;
+                remainingGeneral.sort(() => Math.random() - 0.5);
+                sessionList = sessionList.concat(remainingGeneral.slice(0, needed));
+            }
+        }
+
+        sessionList.sort(() => Math.random() - 0.5);
+
+        if (sessionList.length === 0) {
+            this.showMessage('No words found', 'Try changing your filter settings.');
             return;
         }
 
-        // 2. Data Logic
-        let existingStatus = 'new';
-        if (id) {
-            const w = this.data.words.find(i => i.id == id);
-            if (w) existingStatus = w.status;
+        this.session.queue = sessionList;
+        this.session.currentIdx = 0;
+        this.session.sessionLearnedCount = 0;
+
+        this.navigate('learning');
+        this.renderCard();
+    },
+
+    renderCard() {
+        if (this.session.currentIdx >= this.session.queue.length) {
+            this.finishSession();
+            return;
         }
 
-        const newWord = {
-            id: id ? parseInt(id) : Date.now(),
-            word: wordVal,
-            trans: transVal,
-            example: document.getElementById('inp-example').value.trim(),
-            tag: document.getElementById('inp-tag').value.trim(),
-            source: document.getElementById('inp-source').value.trim(),
-            status: existingStatus,
-            date: Date.now()
-        };
+        const w = this.session.queue[this.session.currentIdx];
+        const total = this.session.queue.length;
 
-        if (id) {
-            const idx = this.data.words.findIndex(w => w.id == id);
-            if (idx > -1) this.data.words[idx] = { ...this.data.words[idx], ...newWord };
+        document.getElementById('session-counter').innerText = `${this.session.currentIdx + 1} / ${total}`;
+        document.getElementById('session-progress').style.width = ((this.session.currentIdx / total) * 100) + '%';
+
+        document.getElementById('fc-tag').innerText = w.tag;
+        document.getElementById('fc-word').innerText = w.word;
+
+        document.getElementById('fc-answer-block').style.display = 'none';
+        document.getElementById('btn-show').style.display = 'inline-block';
+        document.getElementById('fc-buttons').style.display = 'none';
+
+        document.getElementById('fc-translation').innerText = w.trans;
+        document.getElementById('fc-example').innerText = w.example || '';
+        document.getElementById('fc-example').style.display = w.example ? 'block' : 'none';
+    },
+
+    revealCard() {
+        document.getElementById('fc-answer-block').style.display = 'block';
+        document.getElementById('btn-show').style.display = 'none';
+        document.getElementById('fc-buttons').style.display = 'flex';
+    },
+
+    handleResult(known) {
+        const currentWord = this.session.queue[this.session.currentIdx];
+        const realIdx = this.data.words.findIndex(w => w.id === currentWord.id);
+
+        if (known) {
+            this.data.words[realIdx].status = 'learned';
+            this.data.stats.today++;
+            this.session.sessionLearnedCount++;
         } else {
-            this.data.words.push(newWord);
+            this.data.words[realIdx].status = 'learning';
+        }
+
+        this.save();
+        this.session.currentIdx++;
+        this.renderCard();
+    },
+
+    finishSession() {
+        const todayStr = new Date().toDateString();
+        let streakIncreased = false;
+
+        if (this.data.stats.lastDate !== todayStr) {
+            this.data.stats.streak++;
+            this.data.stats.lastDate = todayStr;
+            streakIncreased = true;
+        } else {
+            this.data.stats.lastDate = todayStr;
         }
 
         this.save();
 
-        try {
-            this.renderDashboard();
-            this.renderDictionary();
-        } catch(e) { console.error("Render error", e); }
-    },
+        document.getElementById('cs-count').innerText = this.session.sessionLearnedCount;
 
-    // --- Destructive Actions (Fixed Closing) ---
-    executeDestructiveAction() {
-        this.closeModal('modal-danger-2');
-        this.closeModal('modal-danger-1');
-
-        if (this.currentDestructiveAction === 'resetStats') {
-            this.data.stats = { today: 0, streak: 0, lastDate: null };
-            this.data.goalReached = false;
-            this.save();
-            this.renderDashboard();
-            this.showMessage("Success", "Statistics reset.");
-        }
-        else if (this.currentDestructiveAction === 'deleteAll') {
-            this.data.words = [];
-            this.data.stats = { today: 0, streak: 0, lastDate: null };
-            this.data.goalReached = false;
-            this.save();
-            this.renderDashboard();
-            this.renderDictionary();
-            this.showMessage("Success", "All words deleted.");
+        const streakEl = document.getElementById('cs-streak');
+        if (streakIncreased) {
+            streakEl.innerText = "+1";
+            streakEl.className = "stat-big streak-plus";
+        } else {
+            streakEl.innerHTML = `${this.data.stats.streak} <span style="font-size:16px">🔥</span>`;
+            streakEl.className = "stat-big";
         }
 
-        this.currentDestructiveAction = null;
+        this.openModal('modal-complete');
     },
 
-    confirmDeleteAction() {
-        this.closeModal('modal-delete-confirm');
-        this.closeModal('modal-overlay');
-
-        if (this.wordToDeleteId) {
-            this.data.words = this.data.words.filter(w => w.id !== this.wordToDeleteId);
-            this.save();
-            this.wordToDeleteId = null;
-            this.renderDashboard();
-            this.renderDictionary();
-        }
-    },
-
-    // --- Status Change (Fixed Closing) ---
-    confirmStatusChange() {
-        this.closeModal('modal-confirm');
-
-        const { id, newStatus } = this.tempStatusChange;
-        if (id && newStatus) {
-            const idx = this.data.words.findIndex(w => w.id === id);
-            if (idx > -1) {
-                this.data.words[idx].status = newStatus;
-                this.save();
-                this.renderDashboard();
-                this.renderDictionary();
-                // Check goal immediately on manual change BUT check flag
-                const learned = this.data.words.filter(w => w.status === 'learned').length;
-                // Only show if NOT yet shown
-                if (this.data.goal > 0 && learned >= this.data.goal && !this.data.goalReached) {
-                    this.checkGoal();
-                }
-            }
-        }
-    },
-
-    // --- Goal & Session End ---
     closeSessionModal() {
         this.closeModal('modal-complete');
         this.selectedSpecificIds = [];
         this.renderSpecificChips();
 
-        const learned = this.data.words.filter(w => w.status === 'learned').length;
+        const progress = this.getGoalProgress();
         const modal = document.getElementById('modal-goal-reached');
 
-        // FORCE SHOW on session end if goal is met (Ignore goalReached flag)
-        if (this.data.goal > 0 && learned >= this.data.goal && modal) {
+        if (this.data.goal > 0 && progress >= this.data.goal && modal) {
             this.data.goalReached = true;
             this.save();
             const valEl = document.getElementById('goal-reached-val');
-            if(valEl) valEl.innerText = learned;
+            if(valEl) valEl.innerText = progress;
             this.openModal('modal-goal-reached');
         } else {
             this.navigate('dashboard');
         }
     },
 
-    checkGoal() {
-        const learned = this.data.words.filter(w => w.status === 'learned').length;
-        const modal = document.getElementById('modal-goal-reached');
-        if (this.data.goal > 0 && learned >= this.data.goal && !this.data.goalReached && modal) {
-            this.data.goalReached = true;
-            this.save();
-            const valEl = document.getElementById('goal-reached-val');
-            if(valEl) valEl.innerText = learned;
-            this.openModal('modal-goal-reached');
-        }
-    },
-
-    // --- UI & Navigation ---
     openModal(modalId) {
         const el = document.getElementById(modalId);
         if(el) el.style.display = 'flex';
@@ -242,7 +353,6 @@ const App = {
         }
     },
 
-    // --- Renderers ---
     renderDashboard() {
         const list = document.getElementById('recent-list');
         if (!list) return;
@@ -255,10 +365,15 @@ const App = {
         document.getElementById('stat-today').innerText = this.data.stats.today;
         document.getElementById('streak-val').innerText = this.data.stats.streak;
 
+        const progress = this.getGoalProgress();
         document.getElementById('goal-target').innerText = this.data.goal;
-        document.getElementById('goal-current').innerText = learned;
+        document.getElementById('goal-current').innerText = progress;
         document.getElementById('goal-max').innerText = this.data.goal;
-        const pct = this.data.goal > 0 ? Math.min(100, (learned / this.data.goal) * 100) : 0;
+
+        let pct = 0;
+        if (this.data.goal > 0) {
+            pct = Math.min(100, (progress / this.data.goal) * 100);
+        }
         document.getElementById('progress-fill').style.width = pct + '%';
 
         const recent = [...this.data.words].sort((a,b) => b.date - a.date).slice(0, 3);
@@ -317,7 +432,6 @@ const App = {
         return div;
     },
 
-    // --- Helpers ---
     openAddWordModal() {
         document.getElementById('word-form').reset();
         document.getElementById('modal-title').innerText = 'Add Word';
@@ -349,19 +463,47 @@ const App = {
         this.closeModal('modal-status');
         this.openModal('modal-confirm');
     },
+    confirmStatusChange() {
+        this.closeModal('modal-confirm');
+        const { id, newStatus } = this.tempStatusChange;
+        if (id && newStatus) {
+            const idx = this.data.words.findIndex(w => w.id === id);
+            if (idx > -1) {
+                this.data.words[idx].status = newStatus;
+                this.save();
+                this.renderDashboard();
+                this.renderDictionary();
+                const progress = this.getGoalProgress();
+                if (this.data.goal > 0 && progress >= this.data.goal && !this.data.goalReached) {
+                    this.checkGoal();
+                }
+            }
+        }
+    },
     promptDelete() {
         const id = document.getElementById('inp-id').value;
         if (!id) return;
         this.wordToDeleteId = parseInt(id);
         this.openModal('modal-delete-confirm');
     },
+    confirmDeleteAction() {
+        this.closeModal('modal-delete-confirm');
+        this.closeModal('modal-overlay');
+        if (this.wordToDeleteId) {
+            this.data.words = this.data.words.filter(w => w.id !== this.wordToDeleteId);
+            this.save();
+            this.wordToDeleteId = null;
+            this.renderDashboard();
+            this.renderDictionary();
+        }
+    },
     initResetStats() {
         this.currentDestructiveAction = 'resetStats';
-        this.openDangerModal1("Reset Statistics?", "This will reset streaks, today's count, and learning progress.");
+        this.openDangerModal1("Reset Statistics?", "This will reset streaks & stats.");
     },
     initDeleteAllWords() {
         this.currentDestructiveAction = 'deleteAll';
-        this.openDangerModal1("Delete All Words?", "This will delete every single word from your dictionary.");
+        this.openDangerModal1("Delete All Words?", "Deletes everything.");
     },
     openDangerModal1(title, text) {
         document.getElementById('dz-title-1').innerText = title;
@@ -372,148 +514,95 @@ const App = {
         this.closeModal('modal-danger-1');
         this.openModal('modal-danger-2');
     },
-
-    // --- Goal Editing ---
-    editGoal() { this.openGoalModal(); },
-    openGoalModal() {
-        document.getElementById('inp-goal').value = this.data.goal;
-        this.openModal('modal-goal');
-        setTimeout(() => document.getElementById('inp-goal').focus(), 100);
-    },
-    saveGoal() {
-        const val = parseInt(document.getElementById('inp-goal').value);
-        if (val && val > 0) {
-            this.data.goal = val;
+    executeDestructiveAction() {
+        this.closeModal('modal-danger-2');
+        this.closeModal('modal-danger-1');
+        if (this.currentDestructiveAction === 'resetStats') {
+            this.data.stats = { today: 0, streak: 0, lastDate: null };
+            this.data.goalStartCount = 0;
             this.data.goalReached = false;
             this.save();
-            this.closeModal('modal-goal');
-            this.navigate('dashboard');
-        } else {
-            this.showMessage("Invalid Goal", "Please enter a valid number.");
+            this.renderDashboard();
+            this.showMessage("Success", "Statistics reset.");
+        } else if (this.currentDestructiveAction === 'deleteAll') {
+            this.data.words = [];
+            this.data.stats = { today: 0, streak: 0, lastDate: null };
+            this.data.goalStartCount = 0;
+            this.data.goalReached = false;
+            this.save();
+            this.renderDashboard();
+            this.renderDictionary();
+            this.showMessage("Success", "All words deleted.");
         }
+        this.currentDestructiveAction = null;
     },
-    openGoalModalFromSuccess() {
-        this.closeModal('modal-goal-reached');
-        this.openGoalModal();
-    },
-    closeGoalSuccess() {
-        this.data.goalReached = true;
-        this.save();
-        this.closeModal('modal-goal-reached');
-        this.navigate('dashboard');
-    },
-
-    // --- Session ---
-    startSession() {
-        let count = 20;
-        const customCountVal = parseInt(document.getElementById('custom-count').value);
-        const activeBtn = document.querySelector('.count-btn.active');
-        let isMax = false;
-
-        if (customCountVal && customCountVal > 0) count = customCountVal;
-        else if (activeBtn) {
-            const btnVal = activeBtn.dataset.val;
-            if (btnVal === 'max') { isMax = true; count = 999999; } else count = parseInt(btnVal);
-        }
-
-        const statusFilter = document.getElementById('train-filter').value;
-        const tagFilter = document.getElementById('train-tag').value;
-        const sourceFilter = document.getElementById('train-source').value;
-
-        let generalPool = this.data.words.filter(w => {
-            let statusMatch = false;
-            if (statusFilter === 'new_learning') statusMatch = (w.status === 'new' || w.status === 'learning');
-            else if (statusFilter === 'new') statusMatch = (w.status === 'new');
-            else if (statusFilter === 'learned') statusMatch = (w.status === 'learned');
-            else if (statusFilter === 'all') statusMatch = true;
-
-            const tagMatch = (tagFilter === 'all') || (w.tag === tagFilter);
-            const sourceMatch = (sourceFilter === 'all') || (w.source === sourceFilter);
-            return statusMatch && tagMatch && sourceMatch;
-        });
-
-        const specificPool = this.selectedSpecificIds
-            .map(id => this.data.words.find(w => w.id === id))
-            .filter(Boolean);
-
-        const remainingGeneral = generalPool.filter(w => !this.selectedSpecificIds.includes(w.id));
-        let sessionList = [...specificPool];
-
-        if (isMax) sessionList = sessionList.concat(remainingGeneral);
-        else {
-            if (sessionList.length < count) {
-                remainingGeneral.sort(() => Math.random() - 0.5);
-                sessionList = sessionList.concat(remainingGeneral.slice(0, count - sessionList.length));
-            }
-        }
-        sessionList.sort(() => Math.random() - 0.5);
-
-        if (sessionList.length === 0) {
-            this.showMessage('No words found', 'Try changing your filter settings.');
+    saveWord() {
+        this.closeModal('modal-overlay');
+        const id = document.getElementById('inp-id').value;
+        const wordVal = document.getElementById('inp-word').value.trim();
+        const transVal = document.getElementById('inp-trans').value.trim();
+        if (/\d/.test(wordVal) || /\d/.test(transVal)) {
+            this.openModal('modal-overlay');
+            this.showMessage('Validation Error', 'No numbers allowed.');
             return;
         }
-
-        this.session.queue = sessionList;
-        this.session.currentIdx = 0;
-        this.session.sessionLearnedCount = 0;
-        this.navigate('learning');
-        this.renderCard();
-    },
-
-    renderCard() {
-        if (this.session.currentIdx >= this.session.queue.length) { this.finishSession(); return; }
-        const w = this.session.queue[this.session.currentIdx];
-        const total = this.session.queue.length;
-        document.getElementById('session-counter').innerText = `${this.session.currentIdx + 1} / ${total}`;
-        document.getElementById('session-progress').style.width = ((this.session.currentIdx / total) * 100) + '%';
-        document.getElementById('fc-tag').innerText = w.tag;
-        document.getElementById('fc-word').innerText = w.word;
-        document.getElementById('fc-answer-block').style.display = 'none';
-        document.getElementById('btn-show').style.display = 'inline-block';
-        document.getElementById('fc-buttons').style.display = 'none';
-        document.getElementById('fc-translation').innerText = w.trans;
-        document.getElementById('fc-example').innerText = w.example || '';
-        document.getElementById('fc-example').style.display = w.example ? 'block' : 'none';
-    },
-    revealCard() {
-        document.getElementById('fc-answer-block').style.display = 'block';
-        document.getElementById('btn-show').style.display = 'none';
-        document.getElementById('fc-buttons').style.display = 'flex';
-    },
-    handleResult(known) {
-        const currentWord = this.session.queue[this.session.currentIdx];
-        const realIdx = this.data.words.findIndex(w => w.id === currentWord.id);
-        if (known) {
-            this.data.words[realIdx].status = 'learned';
-            this.data.stats.today++;
-            this.session.sessionLearnedCount++;
-        } else this.data.words[realIdx].status = 'learning';
-        this.save();
-        this.session.currentIdx++;
-        this.renderCard();
-    },
-    finishSession() {
-        const todayStr = new Date().toDateString();
-        let streakIncreased = false;
-        if (this.data.stats.lastDate !== todayStr) {
-            this.data.stats.streak++;
-            this.data.stats.lastDate = todayStr;
-            streakIncreased = true;
-        } else this.data.stats.lastDate = todayStr;
-        this.save();
-        document.getElementById('cs-count').innerText = this.session.sessionLearnedCount;
-        const streakEl = document.getElementById('cs-streak');
-        if (streakIncreased) {
-            streakEl.innerText = "+1";
-            streakEl.className = "stat-big streak-plus";
-        } else {
-            streakEl.innerHTML = `${this.data.stats.streak} <span style="font-size:16px">🔥</span>`;
-            streakEl.className = "stat-big";
+        let existingStatus = 'new';
+        if (id) {
+            const w = this.data.words.find(i => i.id == id);
+            if (w) existingStatus = w.status;
         }
-        this.openModal('modal-complete');
+        const newWord = {
+            id: id ? parseInt(id) : Date.now(),
+            word: wordVal,
+            trans: transVal,
+            example: document.getElementById('inp-example').value.trim(),
+            tag: document.getElementById('inp-tag').value.trim(),
+            source: document.getElementById('inp-source').value.trim(),
+            status: existingStatus,
+            date: Date.now()
+        };
+        if (id) {
+            const idx = this.data.words.findIndex(w => w.id == id);
+            if (idx > -1) this.data.words[idx] = { ...this.data.words[idx], ...newWord };
+        } else {
+            this.data.words.push(newWord);
+        }
+        this.save();
+        try {
+            this.renderDashboard();
+            this.renderDictionary();
+        } catch(e) { console.error("Render error", e); }
     },
-
-    // --- Misc ---
+    exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
+        const a = document.createElement('a');
+        a.setAttribute("href", dataStr);
+        a.setAttribute("download", "wordmaster_backup.json");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    },
+    importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (parsed.words && parsed.stats) {
+                    this.data = parsed;
+                    this.save();
+                    this.renderDashboard();
+                    this.showMessage("Success", "Data imported successfully.");
+                    this.closeModal('modal-settings');
+                } else throw new Error();
+            } catch (err) {
+                this.showMessage("Error", "Invalid JSON file.");
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    },
     populateTrainingFilters() {
         const tagSelect = document.getElementById('train-tag');
         const sourceSelect = document.getElementById('train-source');
@@ -557,36 +646,6 @@ const App = {
             const w = this.data.words.find(word => word.id === id);
             return w ? `<div class="chip">${w.word} <i class="fas fa-times" onclick="event.stopPropagation(); App.removeSpecificWord(${id})"></i></div>` : '';
         }).join('');
-    },
-    exportData() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
-        const a = document.createElement('a');
-        a.setAttribute("href", dataStr);
-        a.setAttribute("download", "wordmaster_backup.json");
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    },
-    importData(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const parsed = JSON.parse(e.target.result);
-                if (parsed.words && parsed.stats) {
-                    this.data = parsed;
-                    this.save();
-                    this.renderDashboard();
-                    this.showMessage("Success", "Data imported successfully.");
-                    this.closeModal('modal-settings');
-                } else throw new Error();
-            } catch (err) {
-                this.showMessage("Error", "Invalid JSON file.");
-            }
-            input.value = '';
-        };
-        reader.readAsText(file);
     },
     showMessage(title, text) {
         document.getElementById('msg-title').innerText = title;

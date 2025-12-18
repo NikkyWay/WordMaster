@@ -2,13 +2,12 @@
     --bg-body: #ebedf0;
     --bg-card: #ffffff;
     --text-main: #111827;
-    --text-muted: #64748b; /* ОТСУТСТВУЮЩАЯ ПЕРЕМЕННАЯ ВОССТАНОВЛЕНА */
+    --text-muted: #64748b;
     --accent: #000000;
     --border: #e2e8f0;
     --input-bg: #f8fafc;
     --radius: 16px;
 
-    /* Status Colors */
     --c-new-text: #475569;
     --c-new-bg: #f1f5f9;
     --c-learning-text: #c2410c;
@@ -261,6 +260,31 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
 }
 .btn-float-reset:hover { transform: rotate(-90deg); background: #fef2f2; }
 
+/* FIX: Align View All correctly */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.section-header h3 {
+    margin: 0;
+}
+.btn-link {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+}
+.btn-link:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
 .recent-section { margin-top: 30px; padding-bottom: 80px; }
 
 .word-list { display: flex; flex-direction: column; gap: 12px; }
@@ -372,8 +396,7 @@ h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 700; }
     transform: translateY(-20px);
 }
 
-/* Z-INDEX */
-#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal, #modal-settings, #modal-goal-reached {
+#modal-message, #modal-confirm, #modal-delete-confirm, #modal-status, #modal-complete, #modal-danger-1, #modal-danger-2, #modal-goal, #modal-settings {
     z-index: 2000;
 }
 
